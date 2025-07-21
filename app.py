@@ -1,6 +1,9 @@
 from flask import Flask, request, jsonify
 import csv
 import os
+import threading
+import time
+import requests
 
 app = Flask(__name__)
 
@@ -106,9 +109,43 @@ def health_check():
     """Health check endpoint"""
     return jsonify({'status': 'healthy'}), 200
 
+def poll_beacon():
+    """Background thread to poll beacon endpoint if configured"""
+    beacon_url = os.environ.get('BEACON_URL')
+    if not beacon_url:
+        print("No BEACON_URL configured, skipping beacon polling")
+        return
+    
+    print(f"Starting beacon polling from: {beacon_url}")
+    while True:
+        try:
+            response = requests.get(beacon_url, timeout=10)
+            if response.status_code == 200:
+                data = response.json()
+                if 'message' in data:
+                    morse_message = data['message']
+                    decoded = decode_morse(morse_message)
+                    print(f"[BEACON POLL] Received morse: {morse_message}")
+                    print(f"[BEACON POLL] Decoded message: {decoded}")
+                    
+                    # Check for flags
+                    flag_indicators = ['FLAG', 'CTF', 'KEY', 'CODE']
+                    for indicator in flag_indicators:
+                        if indicator in decoded.upper():
+                            print(f"[BEACON POLL] *** FLAG FOUND: {decoded} ***")
+                            break
+        except Exception as e:
+            print(f"[BEACON POLL] Error polling beacon: {e}")
+        
+        time.sleep(5)
+
 if __name__ == '__main__':
     # Load morse mappings on startup
     load_morse_mappings()
+    
+    # Start beacon polling thread if configured
+    beacon_thread = threading.Thread(target=poll_beacon, daemon=True)
+    beacon_thread.start()
     
     # Run the Flask app
     port = int(os.environ.get('PORT', 8080))
