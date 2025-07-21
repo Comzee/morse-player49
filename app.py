@@ -48,6 +48,23 @@ def decode_morse(morse_message):
     
     return decoded_message.strip()
 
+@app.route('/decode-morse', methods=['GET'])
+def decode_morse_get():
+    """GET endpoint that returns usage instructions"""
+    return jsonify({
+        'message': 'This endpoint requires a POST request',
+        'usage': {
+            'method': 'POST',
+            'content-type': 'application/json',
+            'body': {
+                'message': '<morse code string>'
+            },
+            'example': {
+                'message': '... --- ... -.. . -.-. --- -.. . -.-. .... .- .-.. .-.. . -. --. .'
+            }
+        }
+    }), 200
+
 @app.route('/decode-morse', methods=['POST'])
 def decode_morse_endpoint():
     """API endpoint to decode morse code messages"""
