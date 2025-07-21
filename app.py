@@ -51,6 +51,13 @@ def decode_morse(morse_message):
     
     return decoded_message.strip()
 
+@app.before_request
+def log_request_info():
+    """Log all incoming requests"""
+    print(f"[REQUEST] {request.method} {request.path} from {request.remote_addr}")
+    if request.method == 'POST' and request.is_json:
+        print(f"[REQUEST] Body: {request.get_json()}")
+
 @app.route('/decode-morse', methods=['GET'])
 def decode_morse_get():
     """GET endpoint that returns usage instructions"""
@@ -139,10 +146,10 @@ def poll_beacon():
         
         time.sleep(5)
 
+# Load morse mappings on startup (for gunicorn)
+load_morse_mappings()
+
 if __name__ == '__main__':
-    # Load morse mappings on startup
-    load_morse_mappings()
-    
     # Start beacon polling thread if configured
     beacon_thread = threading.Thread(target=poll_beacon, daemon=True)
     beacon_thread.start()
